@@ -1,0 +1,111 @@
+local ts = game:GetService("TweenService")
+local plrs = game:GetService("Players")
+local plr = plrs.LocalPlayer
+local wp, tweening = nil, false
+
+-- GUI
+local sg = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+sg.Name = "WaypointGui"
+sg.ResetOnSpawn = false
+
+local mf = Instance.new("Frame", sg)
+mf.Size = UDim2.new(0, 200, 0, 130)
+mf.Position = UDim2.new(0.5, -100, 0.75, 0)
+mf.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mf.BackgroundTransparency = 0.1
+mf.BorderSizePixel = 0
+mf.AnchorPoint = Vector2.new(0.5, 0.5)
+mf.Active = true
+mf.Draggable = true
+Instance.new("UICorner", mf).CornerRadius = UDim.new(0, 12)
+
+-- Warning Label
+local warn = Instance.new("TextLabel", mf)
+warn.Size = UDim2.new(1, 0, 0.2, 0)
+warn.Position = UDim2.new(0, 0, 0, 0)
+warn.BackgroundTransparency = 1
+warn.TextColor3 = Color3.fromRGB(255, 80, 80)
+warn.Text = "⚠️ Use invisibility cloak before using tween"
+warn.Font = Enum.Font.FredokaOne
+warn.TextScaled = true
+
+-- Title Label (no emoji)
+local title = Instance.new("TextLabel", mf)
+title.Size = UDim2.new(1, 0, 0.15, 0)
+title.Position = UDim2.new(0, 0, 0.18, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "Pepper Hub"
+title.Font = Enum.Font.FredokaOne
+title.TextScaled = true
+
+-- Save Button
+local sb = Instance.new("TextButton", mf)
+sb.Size = UDim2.new(0.9, 0, 0.2, 0)
+sb.Position = UDim2.new(0.05, 0, 0.36, 0)
+sb.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+sb.TextColor3 = Color3.fromRGB(255, 255, 255)
+sb.Text = "Save Waypoint"
+sb.Font = Enum.Font.FredokaOne
+sb.TextScaled = true
+sb.AutoButtonColor = true
+Instance.new("UICorner", sb).CornerRadius = UDim.new(0, 8)
+
+-- Tween Button
+local tb = Instance.new("TextButton", mf)
+tb.Size = UDim2.new(0.9, 0, 0.2, 0)
+tb.Position = UDim2.new(0.05, 0, 0.58, 0)
+tb.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+tb.TextColor3 = Color3.fromRGB(255, 255, 255)
+tb.Text = "Tween to Waypoint"
+tb.Font = Enum.Font.FredokaOne
+tb.TextScaled = true
+tb.AutoButtonColor = true
+Instance.new("UICorner", tb).CornerRadius = UDim.new(0, 8)
+
+-- Godmode
+local function protect(h)
+	h:GetPropertyChangedSignal("Health"):Connect(function()
+		if h.Health < 100 then h.Health = 100 end
+	end)
+end
+local function god()
+	plr.CharacterAdded:Connect(function(c)
+		local h = c:WaitForChild("Humanoid")
+		protect(h)
+	end)
+	if plr.Character then
+		local h = plr.Character:FindFirstChild("Humanoid")
+		if h then protect(h) end
+	end
+end
+god()
+
+-- Save Position
+local function save()
+	local c = plr.Character
+	local hrp = c and c:FindFirstChild("HumanoidRootPart")
+	if hrp then wp = hrp.Position end
+end
+
+-- Tween to Saved Position
+local function go()
+	if not wp or tweening then return end
+	tweening = true
+	local c = plr.Character or plr.CharacterAdded:Wait()
+	local hrp = c:WaitForChild("HumanoidRootPart")
+	local dist = (hrp.Position - wp).Magnitude
+	local tween = ts:Create(hrp, TweenInfo.new(dist / 52, Enum.EasingStyle.Linear), {CFrame = CFrame.new(wp)})
+	tween:Play()
+	tween.Completed:Connect(function()
+		hrp.Anchored = true
+		task.delay(2, function()
+			hrp.Anchored = false
+			tweening = false
+		end)
+	end)
+end
+
+-- Connect
+sb.MouseButton1Click:Connect(save)
+tb.MouseButton1Click:Connect(go)
